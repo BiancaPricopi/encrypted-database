@@ -10,6 +10,7 @@ from RSA import generate_keys
 from RSA import read_file
 from RSA import write_file
 from RSA import encrypt
+from RSA import decrypt
 from exception.DuplicateValueError import DuplicateValueError
 from exception.InvalidCommandError import InvalidCommandError
 
@@ -96,16 +97,16 @@ def encrypt_file(file):
     public_key, private_key = generate_keys(bits)
 
     try:
+        encrypted_dir_path = os.path.abspath(sys.argv[2])
+        encrypted_filepath = os.path.join(encrypted_dir_path, file)
+        check_for_duplicates(encrypted_filepath)
+
         dir_path = os.path.abspath(sys.argv[1])
         filepath = os.path.join(dir_path, file)
         plain_text = read_file(filepath)
 
         enc = encrypt(public_key, plain_text)
-        ciphertext = ''.join(map(lambda x: str(x), enc))
-        write_file(ciphertext, file)
-        encrypted_dir_path = os.path.abspath(sys.argv[2])
-        encrypted_filepath = os.path.join(encrypted_dir_path, file)
-        check_for_duplicates(encrypted_filepath)
+        write_file(enc, file)
         write_encryption_details_db(public_key, private_key, encrypted_filepath)
         write_metadata(filepath)
         print('File successfully encrypted.')
@@ -135,11 +136,29 @@ def process_add_command(file):
             encrypt_file(file)
 
 
+def process_read_content_command(file):
+    cursor.execute('SELECT encryption_id FROM metadata WHERE TRIM(filename) = %s', (file, ))
+    encryption_id = cursor.fetchone()[0]
+
+    cursor.execute('SELECT n, private_key, encrypted_file_location FROM encryption WHERE id = %s', (encryption_id, ))
+    n_string, private_key_string, encrypted_filepath = cursor.fetchone()
+    n = int(n_string)
+    private_key = int(private_key_string)
+    with open(encrypted_filepath, 'r') as f:
+        encrypted_lines = f.readlines()
+        encrypted_array = [int(encrypted_line) for encrypted_line in encrypted_lines]
+        dec = decrypt((n, private_key), encrypted_array)
+        print(">>: Content of the file:")
+        print(dec)
+
+
 def process_commands(command, file):
     if command == '-add':
         process_add_command(file)
+    elif command == '-read-file':
+        process_read_content_command(file)
     else:
-        print('no')
+        print('Not implemented yet')
 
 
 def validate_user_input(enc, command, file):
@@ -149,6 +168,9 @@ def validate_user_input(enc, command, file):
         raise InvalidCommandError
     if not check_plain_file_existence(file):
         raise FileNotFoundError
+    filepath = os.path.join(sys.argv[1], file)
+    if not os.path.isfile(filepath):
+        raise IsADirectoryError
 
 
 def terminal():
@@ -167,6 +189,8 @@ def terminal():
             print('Type \'help\' to list available commands')
         except FileNotFoundError:
             print('[Error]: File not found. Please try again')
+        except IsADirectoryError:
+            print('[Error]: Directories are not allowed')
         except ValueError:
             if user_input == 'q':
                 print('Bye')

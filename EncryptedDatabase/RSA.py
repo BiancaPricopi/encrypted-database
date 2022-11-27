@@ -85,7 +85,8 @@ def write_file(content, filename):
     try:
         path = os.path.join(sys.argv[2], filename)
         with open(path, 'w') as file:
-            file.write(content)
+            for encrypted_letter in content:
+                file.write(str(encrypted_letter) + '\n')
     except IOError:
         raise
 
@@ -103,9 +104,15 @@ def test_rsa():
 
         enc = encrypt(public_key, plain_text)
         ciphertext = ''.join(map(lambda x: str(x), enc))
-        write_file(ciphertext, 'noi-vrem-pamant.txt')
-        print("Ciphertext:", ciphertext)
+        write_file(enc, 'noi-vrem-pamant.txt')
+        print("Ciphertext:", enc)
 
+        enc_filepath = os.path.join(sys.argv[2], 'noi-vrem-pamant.txt')
+        with open(enc_filepath, 'r') as f:
+            lines = f.readlines()
+            file_content_encrypted = [int(encrypted_line) for encrypted_line in lines]
+            dec_copy = decrypt(private_key, file_content_encrypted)
+            print("From file:", dec_copy)
         dec = decrypt(private_key, enc)
         print("Decrypted:", dec)
     except IOError:
