@@ -1,0 +1,3 @@
+Resources: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+https://en.wikipedia.org/wiki/RSA_(cryptosystem)
+https://docs.python.org/3/library/os.html#files-and-directories
