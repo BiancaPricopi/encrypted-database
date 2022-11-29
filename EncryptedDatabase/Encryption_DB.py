@@ -3,6 +3,8 @@ import os
 import stat
 import sys
 from datetime import datetime
+from colorama import Fore
+from colorama import Style
 
 import mysql.connector
 
@@ -139,6 +141,8 @@ def process_add_command(file):
 def process_read_content_command(file):
     cursor.execute('SELECT encryption_id FROM metadata WHERE TRIM(filename) = %s', (file, ))
     encryption_id = cursor.fetchone()[0]
+    if encryption_id is None:
+        raise FileNotFoundError
 
     cursor.execute('SELECT n, private_key, encrypted_file_location FROM encryption WHERE id = %s', (encryption_id, ))
     n_string, private_key_string, encrypted_filepath = cursor.fetchone()
@@ -148,17 +152,46 @@ def process_read_content_command(file):
         encrypted_lines = f.readlines()
         encrypted_array = [int(encrypted_line) for encrypted_line in encrypted_lines]
         dec = decrypt((n, private_key), encrypted_array)
-        print(">>: Content of the file:")
+        print(f"{Fore.YELLOW}Content of the file:{Style.RESET_ALL}")
         print(dec)
 
 
+def process_read_meta_command(file):
+    cursor.execute('SELECT * FROM metadata m JOIN encryption e ON m.encryption_id = e.id AND TRIM(m.filename) = %s',
+                   (file,))
+    metadata = cursor.fetchone()
+    if metadata is None:
+        raise FileNotFoundError
+    print(f'{Fore.RED}Name:{Style.RESET_ALL} {metadata[1]}')
+    print(f'{Fore.RED}Type:{Style.RESET_ALL} {metadata[2]}')
+    print(f'{Fore.RED}File location:{Style.RESET_ALL} {metadata[3]}')
+    print(f'{Fore.RED}Size:{Style.RESET_ALL} {metadata[4]}')
+    print(f'{Fore.RED}Attributes:{Style.RESET_ALL} {metadata[5]}')
+    print(f'{Fore.RED}Owner uid:{Style.RESET_ALL} {metadata[6]}')
+    print(f'{Fore.RED}Owner gid:{Style.RESET_ALL} {metadata[7]}')
+    print(f'{Fore.RED}Mode:{Style.RESET_ALL} {metadata[8]}')
+    print(f'{Fore.RED}Date created:{Style.RESET_ALL} {metadata[9]}')
+    print(f'{Fore.RED}Date modified:{Style.RESET_ALL} {metadata[10]}')
+    print(f'{Fore.RED}Date accessed:{Style.RESET_ALL} {metadata[11]}')
+    print(f'{Fore.RED}Method used for encryption:{Style.RESET_ALL} {metadata[14]}')
+    print(f'{Fore.RED}Encryption type:{Style.RESET_ALL} {metadata[15]}')
+    print(f'{Fore.RED}Public key:{Style.RESET_ALL} ({metadata[16]}, {metadata[17]}')
+    print(f'{Fore.RED}Private key:{Style.RESET_ALL} ({metadata[16]}, {metadata[18]}')
+    print(f'{Fore.RED}Encrypted file location:{Style.RESET_ALL} {metadata[19]}')
+
+
 def process_commands(command, file):
-    if command == '-add':
-        process_add_command(file)
-    elif command == '-read-file':
-        process_read_content_command(file)
-    else:
-        print('Not implemented yet')
+    try:
+        if command == '-add':
+            process_add_command(file)
+        elif command == '-read-file':
+            process_read_content_command(file)
+        elif command == '-read-meta':
+            process_read_meta_command(file)
+        else:
+            print('Not implemented yet')
+    except Exception:
+        raise
 
 
 def validate_user_input(enc, command, file):
