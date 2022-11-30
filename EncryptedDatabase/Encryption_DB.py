@@ -15,6 +15,7 @@ from RSA import encrypt
 from RSA import decrypt
 from exception.DuplicateValueError import DuplicateValueError
 from exception.InvalidCommandError import InvalidCommandError
+from exception.DirectoryNotFound import DirectoryNotFound
 
 db = mysql.connector.connect(
     host='localhost',
@@ -23,6 +24,16 @@ db = mysql.connector.connect(
     database='encrypted_db'
 )
 cursor = db.cursor()
+
+
+def check_args():
+    if len(sys.argv) != 3:
+        raise TypeError(f'{Fore.RED}[Error]: Not enough arguments. Please enter one directory for Plain files and '
+                        f'one directory for Encrypted Files in this order{Style.RESET_ALL}')
+    if not os.path.exists(sys.argv[1]) or not os.path.exists(sys.argv[2]):
+        raise DirectoryNotFound
+    if not os.path.isdir(sys.argv[1]) or not os.path.isdir(sys.argv[2]):
+        raise NotADirectoryError
 
 
 def check_encrypted_file_existence(file):
@@ -100,10 +111,10 @@ def encrypt_file(file):
         write_file(enc, file)
         write_encryption_details_db(public_key, private_key, encrypted_filepath)
         write_metadata(filepath)
-        print(f'{Fore.YELLOW}File successfully encrypted.{Style.RESET_ALL}')
+        print(f'{Fore.GREEN}File successfully encrypted.{Style.RESET_ALL}')
 
     except IOError:
-        print("[Error]: File could not be encrypted. Please try again")
+        print(f'{Fore.RED}[Error]: File could not be encrypted. Please try again{Style.RESET_ALL}')
     except DuplicateValueError:
         raise
 
@@ -119,9 +130,11 @@ def process_add_command(file):
     try:
         encrypt_file(file)
     except DuplicateValueError:
-        answer = input('There is a file with the same name, do you want to override it? (y/n): ')
+        answer = input(f'{Fore.YELLOW}There is a file with the same name, do you want to override it? (y/n): '
+                       f'{Style.RESET_ALL}')
         while answer not in ('y', 'n'):
-            answer = input('There is a file with the same name, do you want to override it? (y/n): ')
+            answer = input(f'{Fore.YELLOW}There is a file with the same name, do you want to override it? (y/n): '
+                           f'{Style.RESET_ALL}')
         if answer == 'y':
             delete_file(file)
             encrypt_file(file)
@@ -164,24 +177,24 @@ def process_read_meta_command(file):
                    (file,))
     metadata = cursor.fetchone()
     private_key = compute_hash_for_sk(metadata[18])
-    print(f'{Fore.YELLOW}Metadata:{Style.RESET_ALL}')
-    print(f'{Fore.RED}Name:{Style.RESET_ALL} {metadata[1]}')
-    print(f'{Fore.RED}Type:{Style.RESET_ALL} {metadata[2]}')
-    print(f'{Fore.RED}File location:{Style.RESET_ALL} {metadata[3]}')
-    print(f'{Fore.RED}Size:{Style.RESET_ALL} {metadata[4]}')
-    print(f'{Fore.RED}Attributes:{Style.RESET_ALL} {metadata[5]}')
-    print(f'{Fore.RED}Owner uid:{Style.RESET_ALL} {metadata[6]}')
-    print(f'{Fore.RED}Owner gid:{Style.RESET_ALL} {metadata[7]}')
-    print(f'{Fore.RED}Mode:{Style.RESET_ALL} {metadata[8]}')
-    print(f'{Fore.RED}Date created:{Style.RESET_ALL} {metadata[9]}')
-    print(f'{Fore.RED}Date modified:{Style.RESET_ALL} {metadata[10]}')
-    print(f'{Fore.RED}Date accessed:{Style.RESET_ALL} {metadata[11]}')
-    print(f'{Fore.RED}Method used for encryption:{Style.RESET_ALL} {metadata[14]}')
-    print(f'{Fore.RED}Encryption type:{Style.RESET_ALL} {metadata[15]}')
-    print(f'{Fore.RED}Public key modulus:{Style.RESET_ALL} {metadata[16]}')
-    print(f'{Fore.RED}Public key exponent:{Style.RESET_ALL} {metadata[17]}')
-    print(f'{Fore.RED}Private key:{Style.RESET_ALL} {private_key}')
-    print(f'{Fore.RED}Encrypted file location:{Style.RESET_ALL} {metadata[19]}')
+    print(f'{Fore.YELLOW}Metadata:')
+    print(f'{Fore.GREEN}Name:{Style.RESET_ALL} {metadata[1]}')
+    print(f'{Fore.GREEN}Type:{Style.RESET_ALL} {metadata[2]}')
+    print(f'{Fore.GREEN}File location:{Style.RESET_ALL} {metadata[3]}')
+    print(f'{Fore.GREEN}Size:{Style.RESET_ALL} {metadata[4]}')
+    print(f'{Fore.GREEN}Attributes:{Style.RESET_ALL} {metadata[5]}')
+    print(f'{Fore.GREEN}Owner uid:{Style.RESET_ALL} {metadata[6]}')
+    print(f'{Fore.GREEN}Owner gid:{Style.RESET_ALL} {metadata[7]}')
+    print(f'{Fore.GREEN}Mode:{Style.RESET_ALL} {metadata[8]}')
+    print(f'{Fore.GREEN}Date created:{Style.RESET_ALL} {metadata[9]}')
+    print(f'{Fore.GREEN}Date modified:{Style.RESET_ALL} {metadata[10]}')
+    print(f'{Fore.GREEN}Date accessed:{Style.RESET_ALL} {metadata[11]}')
+    print(f'{Fore.GREEN}Method used for encryption:{Style.RESET_ALL} {metadata[14]}')
+    print(f'{Fore.GREEN}Encryption type:{Style.RESET_ALL} {metadata[15]}')
+    print(f'{Fore.GREEN}Public key modulus:{Style.RESET_ALL} {metadata[16]}')
+    print(f'{Fore.GREEN}Public key exponent:{Style.RESET_ALL} {metadata[17]}')
+    print(f'{Fore.GREEN}Private key:{Style.RESET_ALL} {private_key}')
+    print(f'{Fore.GREEN}Encrypted file location:{Style.RESET_ALL} {metadata[19]}')
 
 
 def process_remove_command(file):
@@ -195,18 +208,19 @@ def process_remove_command(file):
         os.remove(encrypted_filepath)
         cursor.execute('DELETE FROM encryption WHERE id = %s', (encryption_id,))
         db.commit()
-        print(f'{Fore.LIGHTYELLOW_EX}File {file} successfully deleted from database{Style.RESET_ALL}')
+        print(f'{Fore.GREEN}File {file} successfully deleted from database{Style.RESET_ALL}')
     else:
         raise FileNotFoundError
 
 
 def process_help_command():
-    print(f'{Fore.YELLOW}Encrypted database (c){Style.RESET_ALL}\n'
+    print(f'{Fore.YELLOW}Encrypted database (c)\n'
           'enc -add <file> : add the file to encrypted database\n'
           'enc -read-file <file> : read content of the encrypted file\n'
           'enc -read-meta <file> : read metadata (properties) of the file\n'
           'enc -rm <file> : delete the file from encrypted database\n'
-          'help : display a list of the available commands')
+          f'help : display a list of the available commands\n'
+          f'q : to exit{Style.RESET_ALL}')
 
 
 def process_commands(command, file):
@@ -245,29 +259,39 @@ def terminal():
     print('Type \'help\' to list available commands')
     while True:
         try:
-            user_input = input(">>:")
+            user_input = input(f'{Fore.YELLOW}>>:{Style.RESET_ALL}')
             enc, command, file = user_input.split()
             validate_user_input(enc, command, file)
             process_commands(command, file)
         except SyntaxError:
-            print(f'[Error]: You have a syntax error. \'{enc}\' is not recognized')
+            print(f'{Fore.RED}[Error]: You have a syntax error. \'{enc}\' is not recognized{Style.RESET_ALL}')
             print('Type \'help\' to list available commands')
         except InvalidCommandError:
-            print(f'[Error]: {command} not recognized as an internal command')
+            print(f'{Fore.RED}[Error]: {command} not recognized as an internal command{Style.RESET_ALL}')
             print('Type \'help\' to list available commands')
+        except DirectoryNotFound:
+            print(f'{Fore.RED}[Error]: Directory not found. Please try again{Style.RESET_ALL}')
         except FileNotFoundError:
-            print('[Error]: File not found. Please try again')
+            print(f'{Fore.RED}[Error]: File not found. Please try again{Style.RESET_ALL}')
         except IsADirectoryError:
-            print('[Error]: Directories are not allowed')
+            print(f'{Fore.RED}[Error]: Directories are not allowed{Style.RESET_ALL}')
+        except NotADirectoryError:
+            print(f'{Fore.RED}[Error]: Please enter two valid directories{Style.RESET_ALL}')
         except ValueError:
-            if user_input == 'q':
-                print('Bye')
+            if user_input.lower() == 'q':
+                print(f'{Fore.YELLOW}Bye{Style.RESET_ALL}')
                 break
-            if user_input == 'help':
+            elif user_input == 'help':
                 process_help_command()
-            print('[Error]: Watch out the number of args')
-            print('Type \'help\' to list available commands')
+            else:
+                print(f'{Fore.RED}[Error]: Watch out the number of args{Style.RESET_ALL}')
+                print('Type \'help\' to list available commands')
     db.close()
 
 
-terminal()
+if __name__ == "__main__":
+    try:
+        check_args()
+        terminal()
+    except TypeError as e:
+        print(f'{Fore.RED}{e}{Style.RESET_ALL}')
