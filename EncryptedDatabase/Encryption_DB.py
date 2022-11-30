@@ -200,6 +200,15 @@ def process_remove_command(file):
         raise FileNotFoundError
 
 
+def process_help_command():
+    print(f'{Fore.YELLOW}Encrypted database (c){Style.RESET_ALL}\n'
+          'enc -add <file> : add the file to encrypted database\n'
+          'enc -read-file <file> : read content of the encrypted file\n'
+          'enc -read-meta <file> : read metadata (properties) of the file\n'
+          'enc -rm <file> : delete the file from encrypted database\n'
+          'help : display a list of the available commands')
+
+
 def process_commands(command, file):
     try:
         if command == '-add':
@@ -254,6 +263,8 @@ def terminal():
             if user_input == 'q':
                 print('Bye')
                 break
+            if user_input == 'help':
+                process_help_command()
             print('[Error]: Watch out the number of args')
             print('Type \'help\' to list available commands')
     db.close()
