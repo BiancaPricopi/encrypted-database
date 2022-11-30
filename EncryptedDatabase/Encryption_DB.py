@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from colorama import Fore
 from colorama import Style
+import hashlib
 
 import mysql.connector
 
@@ -163,11 +164,19 @@ def process_read_content_command(file):
         print(dec)
 
 
+def compute_hash_for_sk(private_key):
+    sha3 = hashlib.sha3_512()
+    sha3.update(private_key.encode())
+    return sha3.hexdigest()
+
+
 def process_read_meta_command(file):
     check_if_registered(file)
     cursor.execute('SELECT * FROM metadata m JOIN encryption e ON m.encryption_id = e.id AND TRIM(m.filename) = %s',
                    (file,))
     metadata = cursor.fetchone()
+    private_key = compute_hash_for_sk(metadata[18])
+    print(f"{Fore.YELLOW}Metadata:{Style.RESET_ALL}")
     print(f'{Fore.RED}Name:{Style.RESET_ALL} {metadata[1]}')
     print(f'{Fore.RED}Type:{Style.RESET_ALL} {metadata[2]}')
     print(f'{Fore.RED}File location:{Style.RESET_ALL} {metadata[3]}')
@@ -181,8 +190,9 @@ def process_read_meta_command(file):
     print(f'{Fore.RED}Date accessed:{Style.RESET_ALL} {metadata[11]}')
     print(f'{Fore.RED}Method used for encryption:{Style.RESET_ALL} {metadata[14]}')
     print(f'{Fore.RED}Encryption type:{Style.RESET_ALL} {metadata[15]}')
-    print(f'{Fore.RED}Public key:{Style.RESET_ALL} ({metadata[16]}, {metadata[17]}')
-    print(f'{Fore.RED}Private key:{Style.RESET_ALL} ({metadata[16]}, {metadata[18]}')
+    print(f'{Fore.RED}Public key modulus:{Style.RESET_ALL} {metadata[16]}')
+    print(f'{Fore.RED}Public key exponent:{Style.RESET_ALL} {metadata[17]}')
+    print(f'{Fore.RED}Private key:{Style.RESET_ALL} {private_key}')
     print(f'{Fore.RED}Encrypted file location:{Style.RESET_ALL} {metadata[19]}')
 
 
@@ -194,6 +204,10 @@ def process_commands(command, file):
             process_read_content_command(file)
         elif command == '-read-meta':
             process_read_meta_command(file)
+        elif command == '-read':
+            process_read_meta_command(file)
+            print()
+            process_read_content_command(file)
         else:
             print('Not implemented yet')
     except Exception:
