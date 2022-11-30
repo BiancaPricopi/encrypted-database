@@ -138,11 +138,18 @@ def process_add_command(file):
             encrypt_file(file)
 
 
+def check_if_registered(file):
+    cursor.execute('SELECT EXISTS (SELECT encryption_id FROM metadata WHERE TRIM(filename) = %s) '
+                   'as OUTPUT', (file, ))
+    file_registered = cursor.fetchone()
+    if file_registered[0] == 0:
+        raise FileNotFoundError
+
+
 def process_read_content_command(file):
+    check_if_registered(file)
     cursor.execute('SELECT encryption_id FROM metadata WHERE TRIM(filename) = %s', (file, ))
     encryption_id = cursor.fetchone()[0]
-    if encryption_id is None:
-        raise FileNotFoundError
 
     cursor.execute('SELECT n, private_key, encrypted_file_location FROM encryption WHERE id = %s', (encryption_id, ))
     n_string, private_key_string, encrypted_filepath = cursor.fetchone()
@@ -157,11 +164,10 @@ def process_read_content_command(file):
 
 
 def process_read_meta_command(file):
+    check_if_registered(file)
     cursor.execute('SELECT * FROM metadata m JOIN encryption e ON m.encryption_id = e.id AND TRIM(m.filename) = %s',
                    (file,))
     metadata = cursor.fetchone()
-    if metadata is None:
-        raise FileNotFoundError
     print(f'{Fore.RED}Name:{Style.RESET_ALL} {metadata[1]}')
     print(f'{Fore.RED}Type:{Style.RESET_ALL} {metadata[2]}')
     print(f'{Fore.RED}File location:{Style.RESET_ALL} {metadata[3]}')
