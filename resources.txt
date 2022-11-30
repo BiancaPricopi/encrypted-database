@@ -5,3 +5,5 @@ https://docs.python.org/3/library/os.html#files-and-directories
 db: https://youtu.be/91iNR0eG8kE
 	mycursor.execute('INSERT INTO Person(name, age) VALUES (%s,%s)', ('Tim', 19))
 	db.commit()
+	
+hashlib: https://www.geeksforgeeks.org/sha3-in-python/
