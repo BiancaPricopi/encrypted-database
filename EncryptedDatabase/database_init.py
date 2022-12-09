@@ -1,11 +1,15 @@
 import mysql.connector
+import os
+from dotenv import load_dotenv
 
 
 def create_db():
+    """Creates the encrypted database."""
+    load_dotenv()
     db = mysql.connector.connect(
         host='localhost',
         user='root',
-        password='7312022?#M$,'
+        password=os.getenv('db_password')
     )
     cursor = db.cursor()
     cursor.execute('DROP DATABASE IF EXISTS encrypted_db')
@@ -14,10 +18,11 @@ def create_db():
 
 
 def create_tables():
+    """Creates tables for the encrypted database."""
     db = mysql.connector.connect(
         host='localhost',
         user='root',
-        password='7312022?#M$,',
+        password=os.getenv('db_password'),
         database='encrypted_db'
     )
     cursor = db.cursor()
@@ -45,5 +50,6 @@ def create_tables():
 
 
 def init():
+    """Initialize the encrypted database"""
     create_db()
     create_tables()

@@ -7,22 +7,25 @@ from colorama import Style
 import hashlib
 
 import mysql.connector
+from dotenv import load_dotenv
 
 from rsa import generate_keys, read_file, write_file, encrypt, decrypt
 from exception.DuplicateValueError import DuplicateValueError
 from exception.InvalidCommandError import InvalidCommandError
 from exception.DirectoryNotFound import DirectoryNotFound
 
+load_dotenv()
 db = mysql.connector.connect(
     host='localhost',
     user='root',
-    password='7312022?#M$,',
+    password=os.getenv('db_password'),
     database='encrypted_db'
 )
 cursor = db.cursor()
 
 
 def check_args():
+    """Validates command line arguments."""
     if len(sys.argv) != 3:
         raise TypeError(
             f'{Fore.RED}[Error]: Not enough arguments. '
@@ -36,16 +39,31 @@ def check_args():
 
 
 def check_encrypted_file_existence(file):
+    """
+    Verifies if the file exists at the location of the encrypted files.
+
+    :param file: the name of the file that will be verified
+    """
     encrypted_location = os.path.join(sys.argv[2], file)
     return os.path.exists(encrypted_location)
 
 
 def check_plain_file_existence(file):
+    """
+    Verifies if the file exists at the location of the plain files.
+
+    :param file: the name of the file that will be verified
+    """
     location = os.path.join(sys.argv[1], file)
     return os.path.exists(location)
 
 
 def check_for_duplicates(filepath):
+    """
+    Verifies if there is already an encrypted file at the same location.
+
+    :param filepath: the path of the file that will be verified
+    """
     cursor.execute(
         'SELECT id FROM encryption WHERE TRIM(encrypted_file_location) = %s',
         (filepath,)
@@ -56,6 +74,13 @@ def check_for_duplicates(filepath):
 
 
 def write_encryption_details_db(pk, sk, filepath):
+    """
+    Writes encrypted details about a file in database.
+
+    :param pk: public key for RSA
+    :param sk: secret key for RSA
+    :param filepath: location of the encrypted file
+    """
     filepath = os.path.abspath(filepath)
     cursor.execute(
         'INSERT INTO encryption(method, type, n, public_key, private_key, '
@@ -68,11 +93,21 @@ def write_encryption_details_db(pk, sk, filepath):
 
 
 def convert_date(timestamp):
+    """
+    Converts timestamp to a readable datetime format.
+
+    :param timestamp: number of seconds
+    """
     modified = datetime.fromtimestamp(timestamp)
     return modified
 
 
 def write_metadata(filepath):
+    """
+        Writes metadata associated with a file into database.
+
+        :param filepath: location of the plain file
+        """
     filepath = os.path.abspath(filepath)
     filename = os.path.basename(filepath)
     filetype = os.path.splitext(filepath)[1]
@@ -109,6 +144,11 @@ def write_metadata(filepath):
 
 
 def encrypt_file(file):
+    """
+    Encrypt the file using RSA.
+
+    :param file: the name of the file
+    """
     bits = 1024
     public_key, private_key = generate_keys(bits)
 
@@ -138,6 +178,11 @@ def encrypt_file(file):
 
 
 def delete_file(filename):
+    """
+    Deletes all records of a file from encrypted database.
+
+    :param filename: the name of the file
+    """
     abspath = os.path.abspath(sys.argv[2])
     filepath = os.path.join(abspath, filename)
     cursor.execute(
@@ -148,6 +193,11 @@ def delete_file(filename):
 
 
 def process_add_command(file):
+    """
+    Adds a file to the encrypted database.
+
+    :param file: the name of the file
+    """
     try:
         encrypt_file(file)
     except DuplicateValueError:
@@ -166,6 +216,11 @@ def process_add_command(file):
 
 
 def check_if_registered(file):
+    """
+    Verifies if there is a file in the database with the same name.
+
+    :param file: the name of the file
+    """
     cursor.execute(
         'SELECT EXISTS (SELECT encryption_id FROM metadata '
         'WHERE TRIM(filename) = %s) as OUTPUT',
@@ -177,6 +232,11 @@ def check_if_registered(file):
 
 
 def process_read_content_command(file):
+    """
+    Prints the decrypted content of an encrypted file.
+
+    :param file: the name of the encrypted file
+    """
     check_if_registered(file)
     cursor.execute(
         'SELECT encryption_id FROM metadata WHERE TRIM(filename) = %s', (file,)
@@ -202,12 +262,23 @@ def process_read_content_command(file):
 
 
 def compute_hash_for_sk(private_key):
+    """
+    Computes sha3-512 hash function.
+
+    :param private_key: private key
+    :return: unique hash
+    """
     sha3 = hashlib.sha3_512()
     sha3.update(private_key.encode())
     return sha3.hexdigest()
 
 
 def process_read_meta_command(file):
+    """
+    Prints the metadata of the file
+
+    :param file: the name of the file
+    """
     check_if_registered(file)
     cursor.execute(
         'SELECT * FROM metadata m JOIN encryption e ON m.encryption_id = e.id '
@@ -242,6 +313,11 @@ def process_read_meta_command(file):
 
 
 def process_remove_command(file):
+    """
+    Deletes a file from encrypted database and from disk location.
+
+    :param file: the name of the file
+    """
     check_if_registered(file)
     cursor.execute(
         'SELECT encryption_id FROM metadata WHERE TRIM(filename) = %s', (file,)
@@ -267,6 +343,7 @@ def process_remove_command(file):
 
 
 def process_help_command():
+    """Prints a list of commands."""
     print(
         f'{Fore.YELLOW}Encrypted database (c)\n'
         'enc -add <file> : add the file to encrypted database\n'
@@ -280,6 +357,12 @@ def process_help_command():
 
 
 def process_commands(command, file):
+    """
+    Execute a specific action on a file.
+
+    :param command: action to be executed
+    :param file: the name of the file
+    """
     try:
         if command == '-add':
             process_add_command(file)
@@ -300,6 +383,13 @@ def process_commands(command, file):
 
 
 def validate_user_input(enc, command, file):
+    """
+    Validates user input.
+
+    :param enc: must be equal with 'enc'
+    :param command: action to be executed
+    :param file: the name of the file
+    """
     if enc != 'enc':
         raise SyntaxError
     if command not in ['-add', '-read-file', '-read-meta', '-read', '-rm']:
@@ -312,6 +402,7 @@ def validate_user_input(enc, command, file):
 
 
 def terminal():
+    """Display user-terminal interaction"""
     print('Type "help" to list available commands')
     while True:
         try:
@@ -369,5 +460,15 @@ if __name__ == '__main__':
     try:
         check_args()
         terminal()
+    except DirectoryNotFound:
+        print(
+            f'{Fore.RED}[Error]: Directory not found. '
+            f'Please try again{Style.RESET_ALL}'
+        )
+    except NotADirectoryError:
+        print(
+            f'{Fore.RED}[Error]: Please enter two valid directories'
+            f'{Style.RESET_ALL}'
+        )
     except TypeError as e:
         print(f'{Fore.RED}{e}{Style.RESET_ALL}')
