@@ -7,3 +7,4 @@ db: https://youtu.be/91iNR0eG8kE
 	db.commit()
 	
 hashlib: https://www.geeksforgeeks.org/sha3-in-python/
+.env: https://towardsdatascience.com/the-quick-guide-to-using-environment-variables-in-python-d4ec9291619e
