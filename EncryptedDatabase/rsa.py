@@ -17,7 +17,7 @@ def get_prime_of_length(length):
 
 def gcd(a, b):
     """
-    Compute greatest common divisor.
+    Compute the greatest common divisor.
 
     :param a: first number
     :param b: second number

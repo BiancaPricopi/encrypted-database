@@ -47,7 +47,7 @@ def check_plain_file_existence(file):
 
 
 def process_help_command():
-    """Prints a list of command."""
+    """Prints the available commands. """
     print(
         f'{Fore.YELLOW}Encrypted database (c)\n'
         'enc -add <file> : add the file to encrypted database\n'
@@ -62,7 +62,7 @@ def process_help_command():
 
 def process_commands(command, file):
     """
-    Execute a specific action on a file.
+    Execute a specific action from the list on a file.
 
     :param command: action to be executed
     :param file: the name of the file

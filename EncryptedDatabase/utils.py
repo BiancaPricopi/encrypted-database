@@ -7,6 +7,7 @@ def convert_date(timestamp):
     Converts timestamp to a readable datetime format.
 
     :param timestamp: number of seconds
+    :return: datetime format
     """
     modified = datetime.fromtimestamp(timestamp)
     return modified
