@@ -19,6 +19,7 @@ def create_db():
 
 def create_tables():
     """Creates tables for the encrypted database."""
+    load_dotenv()
     db = mysql.connector.connect(
         host='localhost',
         user='root',
