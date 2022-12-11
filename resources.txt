@@ -1,6 +1,9 @@
 Resources: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
 https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 https://docs.python.org/3/library/os.html#files-and-directories
+https://docs.python.org/3/library/os.path.html
+https://docs.python.org/3/library/stat.html
+Curs-Fai 2 AFCS-NumberTheory.pdf
 
 db: https://youtu.be/91iNR0eG8kE
 	mycursor.execute('INSERT INTO Person(name, age) VALUES (%s,%s)', ('Tim', 19))
